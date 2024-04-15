@@ -10,7 +10,7 @@ struct DiskPart {
     size: String,
     mountpoint: String,
     uuid: String,
-    fsavail: String,
+    //fsavail: String,
     path: String
 
 }
@@ -21,23 +21,25 @@ impl fmt::Display for DiskPart {
     }
 }
 
-trait Values {
+/*trait Values {
     fn get_uuid(&self) -> String;
     fn get_size(&self) -> u64;
     fn get_fsavail(&self) -> u64;
-}
+}*/
 
-impl Values for  DiskPart {
+impl DiskPart {
+    /*
     fn get_uuid(&self) -> String {
         self.uuid.clone()
     }
 
-    fn get_size(&self) -> u64 {
-        self.size.parse::<u64>().unwrap()/1024
-    }
-
     fn get_fsavail(&self) -> u64 {
         self.fsavail.parse::<u64>().unwrap()
+    }
+    */
+
+    fn get_size(&self) -> u64 {
+        self.size.parse::<u64>().unwrap()/1024
     }
 }
 
@@ -72,7 +74,7 @@ pub fn save_disk() {
                 size: partitions["size"].to_string(),
                 mountpoint: partitions["mountpoint"].to_string(),
                 uuid: partitions["uuid"].to_string(),
-                fsavail: partitions["fsavail"].to_string(),
+                //fsavail: partitions["fsavail"].to_string(),
                 path: partitions["path"].to_string()
             };
             disks_to_display.push(disk_part);
@@ -104,15 +106,23 @@ pub fn save_disk() {
                 std::process::exit(1);
             } else {
                 if Confirm::new(format!("Are you sure you want to save {} to {} ?", src.path, destination).as_str()).with_default(false).prompt().unwrap() {
-                    Command::new("dd")
+                    match Command::new("dd")
                     .args(&[
                         format!("if={}",src.path).as_str(), 
                         format!("of={}/{}_save.img", destination, src.uuid).as_str(), //choose a folder !
                         "bs=4096", 
                         "status=progress" 
                         ])
-                    .status()
-                    .expect("failed to execute process");
+                    .status() {
+                        Ok(_) => {
+                            println!("Backup completed successfully");
+                            println!("saved in {destination} with the name {}_save.img", src.uuid);
+                        }
+                        Err(e) => {
+                            println!("Error : {e}");
+                        }
+                    }
+                    
     
                     println!("saved in {destination} with the name {}_save.img", src.uuid);
                 } else {
