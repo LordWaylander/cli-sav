@@ -13,5 +13,8 @@ pub struct Args {
 }
 
 pub fn main(options: Args) {
+    // rzstore disk -> search le .img dans le select folder (afficher uniquement les .img)
+    // rstore folder... same que sauvegarde
+    
     println!("restore something : {:?}", options)
 }

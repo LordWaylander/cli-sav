@@ -37,35 +37,25 @@ pub fn main(options: Args) {
 
 fn choose_path_folder(r#type: &str) -> String {
     let mut path = String::from("/");
-    let mut previous_path = String::from("/");
     loop {
         let mut vector_dirs: Vec<String> = Vec::new();
         
         vector_dirs.push(String::from("Valid"));
         vector_dirs.push(String::from("Back"));
 
-        match fs::read_dir(path.clone()) {
-            Ok(dirs) => {
+        let dirs = fs::read_dir(path.clone()).unwrap();
                 
-                for dir in dirs {
-                    let dir = dir.unwrap();
-                    if dir.path().is_dir() {
-                        //TODO : sort ?
-                        let dir_path_string = dir.path().into_os_string().into_string().unwrap();
-                        let dir_splitted = dir_path_string.split("/").collect::<Vec<&str>>();
+        for dir in dirs {
+            let dir = dir.unwrap();
+            if dir.path().is_dir() {
+                //TODO : sort ?
+                let dir_path_string = dir.path().into_os_string().into_string().unwrap();
+                let dir_splitted = dir_path_string.split("/").collect::<Vec<&str>>();
 
-                        //don't show hidden directories
-                        if !dir_splitted.iter().last().unwrap().starts_with("."){
-                            vector_dirs.push(dir_path_string);
-                        }
-                    }
+                //don't show hidden directories
+                if !dir_splitted.iter().last().unwrap().starts_with("."){
+                    vector_dirs.push(dir_path_string);
                 }
-                previous_path = path.clone();
-            }
-            Err(e) => {
-                println!("error : {e}");
-                path = String::from(previous_path.clone());
-                continue;
             }
         }
 
@@ -105,7 +95,7 @@ fn choose_path_folder(r#type: &str) -> String {
                 }
             }
             Err(e) => {
-                println!("error : {e}");
+                println!("Error : {e}");
                 std::process::exit(1);
             }
         }
@@ -115,14 +105,14 @@ fn choose_path_folder(r#type: &str) -> String {
 fn calculate_directory_size(path: &str) -> u64 {
     let mut folder_size = 0;
 
-    let dir = fs::read_dir(path).unwrap();
+    let dirs = fs::read_dir(path).unwrap();
 
-    for entry in dir {
-        let entry = entry.unwrap();
-        let metadata = entry.metadata().unwrap();
+    for dir in dirs {
+        let dir = dir.unwrap();
+        let metadata = dir.metadata().unwrap();
         
         if metadata.is_dir() {
-            let sub_dir_size = calculate_directory_size(entry.path().to_str().unwrap());
+            let sub_dir_size = calculate_directory_size(dir.path().to_str().unwrap());
             folder_size += sub_dir_size;
         } else {
             folder_size += metadata.len();

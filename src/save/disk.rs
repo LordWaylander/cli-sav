@@ -32,7 +32,7 @@ pub fn save_disk() {
     whoami = whoami.replace("\n", "");
 
     if whoami != "root" {
-        println!("You must run the program with sudo right to save a disk");
+        println!("You must run the program with sudo rights to save a disk");
         std::process::exit(1);
     }
 
@@ -65,7 +65,6 @@ pub fn save_disk() {
 
     let source: Result<DiskPart, InquireError> = Select::new("Select source", disks_to_display.clone()).prompt();
     let destination = choose_path_folder("destination");
-
     let size_available = get_available_space_disk(destination.as_str());
 
     if let Err(e) = size_available {
@@ -103,7 +102,7 @@ pub fn save_disk() {
             }
         },
         Err(e) => {
-            println!("error : {e}");
+            println!("Error : {e}");
             std::process::exit(1);
         },
     }
