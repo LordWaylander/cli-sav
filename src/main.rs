@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
 
 mod scan;
-mod list;
 mod save;
 mod restore;
 
