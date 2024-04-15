@@ -1,3 +1,4 @@
+use std::process::{Command, Stdio};
 use clap::Parser;
 use inquire::{Select, error::InquireError, Confirm};
 use std::fs;
@@ -109,4 +110,53 @@ fn choose_path_folder(r#type: &str) -> String {
             }
         }
     }
+}
+
+fn calculate_directory_size(path: &str) -> u64 {
+    let mut folder_size = 0;
+
+    let dir = fs::read_dir(path).unwrap();
+
+    for entry in dir {
+        let entry = entry.unwrap();
+        let metadata = entry.metadata().unwrap();
+        
+        if metadata.is_dir() {
+            let sub_dir_size = calculate_directory_size(entry.path().to_str().unwrap());
+            folder_size += sub_dir_size;
+        } else {
+            folder_size += metadata.len();
+        }
+    }
+
+    return folder_size/1024; //convert to Ko
+}
+
+fn get_available_space_disk(path: &str)-> Result<u64, &str> {
+    let disk_dest = Command::new("df")
+    .args([
+        "--output=avail",
+        path
+        ]) .stdout(Stdio::piped())
+    .output()
+    .expect("failed to execute process");
+    
+    let output_str = String::from_utf8(disk_dest.stdout).unwrap();
+
+    let mut available_space: Option<u64> = None;
+    for line in output_str.lines() {
+        if let Some(size_str) = line.trim().split_whitespace().next() {
+            if let Ok(size) = size_str.parse::<u64>() {
+                available_space = Some(size);
+                break;
+            }
+        }
+    }
+
+    if let Some(size) = available_space {
+        return Ok(size); //return in Ko
+    } else {
+        return Err("Error when calculating the available space");
+    }
+    
 }

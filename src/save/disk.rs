@@ -2,7 +2,7 @@ use std::process::{Command, Stdio};
 use std::fmt;
 use inquire::{Select, error::InquireError, Confirm};
 use json;
-use crate::save::choose_path_folder;
+use crate::save::{choose_path_folder, get_available_space_disk};
 
 #[derive(Debug, Clone)]
 struct DiskPart {
@@ -10,7 +10,6 @@ struct DiskPart {
     size: String,
     mountpoint: String,
     uuid: String,
-    //fsavail: String,
     path: String
 
 }
@@ -21,23 +20,7 @@ impl fmt::Display for DiskPart {
     }
 }
 
-/*trait Values {
-    fn get_uuid(&self) -> String;
-    fn get_size(&self) -> u64;
-    fn get_fsavail(&self) -> u64;
-}*/
-
 impl DiskPart {
-    /*
-    fn get_uuid(&self) -> String {
-        self.uuid.clone()
-    }
-
-    fn get_fsavail(&self) -> u64 {
-        self.fsavail.parse::<u64>().unwrap()
-    }
-    */
-
     fn get_size(&self) -> u64 {
         self.size.parse::<u64>().unwrap()/1024
     }
@@ -74,7 +57,6 @@ pub fn save_disk() {
                 size: partitions["size"].to_string(),
                 mountpoint: partitions["mountpoint"].to_string(),
                 uuid: partitions["uuid"].to_string(),
-                //fsavail: partitions["fsavail"].to_string(),
                 path: partitions["path"].to_string()
             };
             disks_to_display.push(disk_part);
@@ -84,24 +66,16 @@ pub fn save_disk() {
     let source: Result<DiskPart, InquireError> = Select::new("Select source", disks_to_display.clone()).prompt();
     let destination = choose_path_folder("destination");
 
-    //TODO : a améliorer
-    let disk_dest = Command::new("df")
-    .args([
-        "--output=avail",
-        destination.as_str()
-        ]) .stdout(Stdio::piped())
-    .output()
-    .expect("failed to execute process");
-    
-    let disk_dest = String::from_utf8(disk_dest.stdout).unwrap();
-    let disk_dest = disk_dest.split("\n").collect::<Vec<&str>>();
+    let size_available = get_available_space_disk(destination.as_str());
 
-    let size_destination = disk_dest[1].split_whitespace().collect::<Vec<&str>>();
-    let size_destination: u64 = size_destination[0].parse().unwrap();
+    if let Err(e) = size_available {
+        println!("Error {e}");
+        std::process::exit(1);
+    }
 
     match source {
         Ok(src) => {
-            if src.get_size() > size_destination {
+            if Ok(src.get_size()) > size_available {
                 println!("Error, destination size is smaller than source !");
                 std::process::exit(1);
             } else {
@@ -109,7 +83,7 @@ pub fn save_disk() {
                     match Command::new("dd")
                     .args(&[
                         format!("if={}",src.path).as_str(), 
-                        format!("of={}/{}_save.img", destination, src.uuid).as_str(), //choose a folder !
+                        format!("of={}/{}_save.img", destination, src.uuid).as_str(),
                         "bs=4096", 
                         "status=progress" 
                         ])
@@ -122,9 +96,6 @@ pub fn save_disk() {
                             println!("Error : {e}");
                         }
                     }
-                    
-    
-                    println!("saved in {destination} with the name {}_save.img", src.uuid);
                 } else {
                     println!("Aborted");
                     std::process::exit(1);
