@@ -22,7 +22,7 @@ impl fmt::Display for DiskPart {
 
 impl DiskPart {
     fn get_size(&self) -> u64 {
-        self.size.parse::<u64>().unwrap()/1024
+        self.size.parse::<u64>().unwrap() //return in bytes
     }
 }
 
@@ -67,14 +67,9 @@ pub fn save_disk() {
     let destination = choose_path_folder("destination");
     let size_available = get_available_space_disk(destination.as_str());
 
-    if let Err(e) = size_available {
-        println!("Error {e}");
-        std::process::exit(1);
-    }
-
     match source {
         Ok(src) => {
-            if Ok(src.get_size()) > size_available {
+            if src.get_size() > size_available {
                 println!("Error, destination size is smaller than source !");
                 std::process::exit(1);
             } else {

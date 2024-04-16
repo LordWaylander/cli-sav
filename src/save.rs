@@ -119,10 +119,10 @@ fn calculate_directory_size(path: &str) -> u64 {
         }
     }
 
-    return folder_size/1024; //convert to Ko
+    return folder_size; //return in bytes
 }
 
-fn get_available_space_disk(path: &str)-> Result<u64, &str> {
+fn get_available_space_disk(path: &str)-> u64 {
     let disk_dest = Command::new("df")
     .args([
         "--output=avail",
@@ -144,9 +144,10 @@ fn get_available_space_disk(path: &str)-> Result<u64, &str> {
     }
 
     if let Some(size) = available_space {
-        return Ok(size); //return in Ko
+        return size * 1024; //return in bytes
     } else {
-        return Err("Error when calculating the available space");
+        println!("Error when calculating the available space");
+        std::process::exit(1);
     }
     
 }
