@@ -1,6 +1,6 @@
 use std::process::{Command, Stdio};
 use std::fmt;
-use inquire::{Select, error::InquireError, Confirm};
+use inquire::{Select, error::InquireError, Confirm, ui::{Color, RenderConfig, StyleSheet}};
 use json;
 use crate::save::{choose_path_folder, get_available_space_disk};
 
@@ -70,10 +70,13 @@ pub fn save_disk() {
     match source {
         Ok(src) => {
             if src.get_size() > size_available {
-                println!("Error, destination size is smaller than source !");
+                println!("\x1b[31mError, destination size is smaller than source !\x1b[0m");
                 std::process::exit(1);
             } else {
-                if Confirm::new(format!("Are you sure you want to save {} to {} ?", src.path, destination).as_str()).with_default(false).prompt().unwrap() {
+                let mut render_config = RenderConfig::default();
+                render_config.prompt = StyleSheet::new().with_fg(Color::DarkYellow);
+
+                if Confirm::new(format!("Are you sure you want to save {} to {} ?", src.path, destination).as_str()).with_render_config(render_config).with_default(false).prompt().unwrap() {
                     match Command::new("dd")
                     .args(&[
                         format!("if={}",src.path).as_str(), 
@@ -87,17 +90,17 @@ pub fn save_disk() {
                             println!("saved in {destination} with the name {}_save.img", src.uuid);
                         }
                         Err(e) => {
-                            println!("Error : {e}");
+                            println!("\x1b[31mError : {}\x1b[0m", e.kind());
                         }
                     }
                 } else {
-                    println!("Aborted");
+                    println!("\x1b[33mAborted by user\x1b[0m");
                     std::process::exit(1);
                 }
             }
         },
         Err(e) => {
-            println!("Error : {e}");
+            println!("\x1b[31mError : {e}\x1b[0m");
             std::process::exit(1);
         },
     }

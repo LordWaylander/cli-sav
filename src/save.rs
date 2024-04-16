@@ -1,6 +1,6 @@
 use std::process::{Command, Stdio};
 use clap::Parser;
-use inquire::{Select, error::InquireError, Confirm};
+use inquire::{Select, error::InquireError, Confirm, ui::{Color, RenderConfig, StyleSheet}};
 use std::fs;
 
 mod disk;
@@ -43,19 +43,26 @@ fn choose_path_folder(r#type: &str) -> String {
         vector_dirs.push(String::from("Valid"));
         vector_dirs.push(String::from("Back"));
 
-        let dirs = fs::read_dir(path.clone()).unwrap();
-                
-        for dir in dirs {
-            let dir = dir.unwrap();
-            if dir.path().is_dir() {
-                //TODO : sort ?
-                let dir_path_string = dir.path().into_os_string().into_string().unwrap();
-                let dir_splitted = dir_path_string.split("/").collect::<Vec<&str>>();
-
-                //don't show hidden directories
-                if !dir_splitted.iter().last().unwrap().starts_with("."){
-                    vector_dirs.push(dir_path_string);
+        match fs::read_dir(path.clone()) {
+            Ok(dirs) => {
+                for dir in dirs {
+                    let dir = dir.unwrap();
+                    if dir.path().is_dir() {
+                        //TODO : sort ?
+                        let dir_path_string = dir.path().into_os_string().into_string().unwrap();
+                        let dir_splitted = dir_path_string.split("/").collect::<Vec<&str>>();
+        
+                        //don't show hidden directories
+                        if !dir_splitted.iter().last().unwrap().starts_with("."){
+                            vector_dirs.push(dir_path_string);
+                        }
+                    }
                 }
+            }
+            Err(e) => {
+                println!("\x1b[31mError : {}, choose another folder\x1b[0m", e.kind());
+                path = String::from("/");
+                continue;
             }
         }
 
@@ -65,8 +72,10 @@ fn choose_path_folder(r#type: &str) -> String {
             Ok(choice) => {
                 
                 if choice == "Valid" {
+                    let mut render_config = RenderConfig::default();
+                    render_config.prompt = StyleSheet::new().with_fg(Color::DarkYellow);
 
-                    if Confirm::new(format!("Are you sure you want to select {} as {type} folder ?", path).as_str()).with_default(false).prompt().unwrap() {
+                    if Confirm::new(format!("Are you sure you want to select {} as {type} folder ?", path).as_str()).with_render_config(render_config).with_default(false).prompt().unwrap() {
                         return path;
                     }
 
@@ -95,7 +104,7 @@ fn choose_path_folder(r#type: &str) -> String {
                 }
             }
             Err(e) => {
-                println!("Error : {e}");
+                println!("\x1b[31mError : {e}\x1b[0m");
                 std::process::exit(1);
             }
         }
@@ -105,20 +114,25 @@ fn choose_path_folder(r#type: &str) -> String {
 fn calculate_directory_size(path: &str) -> u64 {
     let mut folder_size = 0;
 
-    let dirs = fs::read_dir(path).unwrap();
-
-    for dir in dirs {
-        let dir = dir.unwrap();
-        let metadata = dir.metadata().unwrap();
-        
-        if metadata.is_dir() {
-            let sub_dir_size = calculate_directory_size(dir.path().to_str().unwrap());
-            folder_size += sub_dir_size;
-        } else {
-            folder_size += metadata.len();
+    match fs::read_dir(path) {
+        Ok(dirs) => {
+            for dir in dirs {
+                
+                let dir = dir.unwrap();
+                let metadata = dir.metadata().unwrap();
+                
+                if metadata.is_dir() {
+                    let sub_dir_size = calculate_directory_size(dir.path().to_str().unwrap());
+                    folder_size += sub_dir_size;
+                } else {
+                    folder_size += metadata.len();
+                }
+            }
+        }
+        Err(e) => {
+            println!("\x1b[31mCan't calculate size of {} reason : {}\x1b[0m", path, e.kind());
         }
     }
-
     return folder_size; //return in bytes
 }
 
@@ -146,7 +160,7 @@ fn get_available_space_disk(path: &str)-> u64 {
     if let Some(size) = available_space {
         return size * 1024; //return in bytes
     } else {
-        println!("Error when calculating the available space");
+        println!("\x1b[31mError when calculating the available space\x1b[0m");
         std::process::exit(1);
     }
     
