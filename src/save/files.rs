@@ -5,5 +5,5 @@ pub fn save_files() {
         command.args(["-axHAWXS", "--numeric-ids", "--progress" , src.mountpoint.as_str(), dest.mountpoint.as_str()]);
         command.status().expect("failed to execute process");
     */
-    println!("Save files")
+    println!("Save files is not implemented ... ")
 }

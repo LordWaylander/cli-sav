@@ -1,8 +1,7 @@
-use std::process::{Command, Stdio};
 use std::fmt;
 use inquire::{Select, error::InquireError, Confirm, ui::{Color, RenderConfig, StyleSheet}};
 use json;
-use crate::save::{choose_path_folder, get_available_space_disk};
+use crate::{utils, commands};
 
 #[derive(Debug, Clone)]
 struct DiskPart {
@@ -16,37 +15,38 @@ struct DiskPart {
 
 impl fmt::Display for DiskPart {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "name : {}, size : {}, mountpoint : {}, uuid : {}", self.name, self.size, self.mountpoint, self.uuid)
+        write!(f, "name : {}, size : {}G, mountpoint : {}, uuid : {}", self.name, self.get_size("giga-byte"), self.mountpoint, self.uuid)
     }
 }
 
 impl DiskPart {
-    fn get_size(&self) -> u64 {
-        self.size.parse::<u64>().unwrap() //return in bytes
+    fn get_size(&self, unit: &str) -> u64 {
+        match unit {
+            "byte" => {
+                self.size.parse::<u64>().unwrap()
+            }
+            "giga-byte" => {
+                self.size.parse::<u64>().unwrap()/1073741824
+            }
+            _ => {
+                todo!("only B and GB available");
+            }
+        }
+         //return in bytes
     }
 }
 
 pub fn save_disk() {
-    let whoami = Command::new("whoami").stdout(Stdio::piped()).output().expect("failed to execute process");
-    let mut whoami = String::from_utf8(whoami.stdout).unwrap();
-    whoami = whoami.replace("\n", "");
+    let whoami = commands::whoami();
 
     if whoami != "root" {
         println!("You must run the program with sudo rights to save a disk");
         std::process::exit(1);
     }
 
-    let list_disks = Command::new("lsblk")
-        .args([
-            "-Jbo",
-            "name,size,mountpoint,type,uuid,fsavail,path"
-        ])
-        .stdout(Stdio::piped())
-        .output()
-        .expect("failed to execute process");
-    
-    let output = String::from_utf8(list_disks.stdout).unwrap();
-    let parsed = json::parse(&output).unwrap();
+    let args: Vec<&str> = vec!["-Jbo", "name,size,mountpoint,type,uuid,fsavail,path"];
+    let disks = commands::get_list_disk(args);
+    let parsed = json::parse(&disks).unwrap();
 
     let mut disks_to_display: Vec<DiskPart> = vec![];
     
@@ -64,12 +64,14 @@ pub fn save_disk() {
     }    
 
     let source: Result<DiskPart, InquireError> = Select::new("Select source", disks_to_display.clone()).prompt();
-    let destination = choose_path_folder("destination");
-    let size_available = get_available_space_disk(destination.as_str());
-
+    
     match source {
         Ok(src) => {
-            if src.get_size() > size_available {
+            println!("Choose the destination");
+            let destination = utils::choose_path_folder("destination");
+            let size_available = utils::get_available_space_disk(destination.as_str());
+
+            if src.get_size("byte") > size_available {
                 println!("\x1b[31mError, destination size is smaller than source !\x1b[0m");
                 std::process::exit(1);
             } else {
@@ -77,17 +79,15 @@ pub fn save_disk() {
                 render_config.prompt = StyleSheet::new().with_fg(Color::DarkYellow);
 
                 if Confirm::new(format!("Are you sure you want to save {} to {} ?", src.path, destination).as_str()).with_render_config(render_config).with_default(false).prompt().unwrap() {
-                    match Command::new("dd")
-                    .args(&[
-                        format!("if={}",src.path).as_str(), 
-                        format!("of={}/{}_save.img", destination, src.uuid).as_str(),
-                        "bs=4096", 
-                        "status=progress" 
-                        ])
-                    .status() {
+
+                    let s1 = format!("if={}",src.path);
+                    let s2 = format!("of={}/{}_save.img", destination, src.uuid);
+                    let args: Vec<&str> = vec![s1.as_str(), s2.as_str(),"bs=4096", "status=progress"];
+
+                    match commands::dd(args) {
                         Ok(_) => {
-                            println!("Backup completed successfully");
-                            println!("saved in {destination} with the name {}_save.img", src.uuid);
+                            println!("\x1b[32mBackup completed successfully\x1b[0m");
+                            println!("\x1b[32msaved in {destination} with the name {}_save.img\x1b[0m", src.uuid);
                         }
                         Err(e) => {
                             println!("\x1b[31mError : {}\x1b[0m", e.kind());

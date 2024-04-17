@@ -1,8 +1,10 @@
 use clap::{Parser, Subcommand};
 
 mod scan;
-mod save;
+mod utils;
 mod restore;
+mod save;
+mod commands;
 
 /// CLI-tools to save some files or folders ine a disk or a directory
 
@@ -12,9 +14,9 @@ enum CommandList {
     /// Scan the disk
     Scan,
    
-    Save(crate::save::Args),
+    Save(save::Args),
     /// restore disk, folder or files
-    Restore(crate::restore::Args)
+    Restore(restore::Args)
 }
 
 #[derive(Parser)]
