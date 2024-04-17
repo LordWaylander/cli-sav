@@ -1,11 +1,11 @@
 use clap::Parser;
-//use std::process::Command;
+mod disk;
+mod folder;
 
-/// restore a Disk, folder or files
-/// option required : "disk", "folder" or "files"
+/// restore a Disk, Folder
+/// option required : "disk" (sudo rights necessary), "folder"
 
-#[derive(Parser)]
-#[derive(Debug)]
+#[derive(Parser, Debug)]
 pub struct Args {
     #[arg(index = 1, required = true)]
     /// disk, folder, files
@@ -13,8 +13,19 @@ pub struct Args {
 }
 
 pub fn main(options: Args) {
-    // rzstore disk -> search le .img dans le select folder (afficher uniquement les .img)
-    // rstore folder... same que sauvegarde
-    
-    println!("restore something : {:?}", options)
+
+    match options.type_to_restore.as_str() {
+        "disk" => {
+            disk::restore_disk();
+        },
+        "folder" => {
+            folder::restore_folder();
+        },
+        /*"files" => {
+            files::restore_files();
+        },*/
+        _ => {
+            println!("Option unknow, options available : disk, folder, files")
+        },
+    }
 }

@@ -5,6 +5,7 @@ mod utils;
 mod restore;
 mod save;
 mod commands;
+mod r#struct;
 
 /// CLI-tools to save some files or folders ine a disk or a directory
 

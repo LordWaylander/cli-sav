@@ -1,11 +1,11 @@
 use crate::{utils, commands};
 use inquire::{Confirm, ui::{Color, RenderConfig, StyleSheet}};
 
-//ça m'emmerde pcq c'est la même fonction que restore::restore_folder()
+//ça m'emmerde pcq c'est la même fonction que save::save_folder()
 // mais c'est moins clair si j'utilise la même je trouve...
 
-pub fn save_folder() {
-    println!("Choose the folder you want to save");
+pub fn restore_folder() {
+    println!("Choose the folder you want to restore");
     let source = utils::choose_path_folder("source");
     println!("Choose the destination");
     let destination = utils::choose_path_folder("destination");
@@ -27,7 +27,7 @@ pub fn save_folder() {
         delete_after = Some("--delete-after");
     }
 
-    if Confirm::new(format!("Are you sure you want to save {} to {} ?", source, destination).as_str()).with_render_config(render_config).with_default(false).prompt().unwrap() {
+    if Confirm::new(format!("Are you sure you want to restore {} to {} ?", source, destination).as_str()).with_render_config(render_config).with_default(false).prompt().unwrap() {
         let mut args = vec!["-av", "--numeric-ids", "--progress", source.as_str(), destination.as_str()];
         if let Some(delete_option) = delete_after {
             args.push(delete_option);
@@ -35,7 +35,7 @@ pub fn save_folder() {
 
         match commands::rsync(args) {
             Ok(_) => {
-                println!("\x1b[32mBackup completed successfully\x1b[0m");
+                println!("\x1b[32mRestoration completed successfully\x1b[0m");
             }
             Err(e) => {
                 println!("\x1b[31mError : {}\x1b[0m", e.kind());

@@ -1,11 +1,9 @@
 use clap::Parser;
-
 mod disk;
 mod folder;
-mod files;
 
-/// Save a Disk, Folder or Files, 
-/// option required : "disk" (sudo rights necessary), "folder" or "files"
+/// Save a Disk, Folder, 
+/// option required : "disk" (sudo rights necessary), "folder"
 
 #[derive(Parser, Debug)]
 pub struct Args {
@@ -23,9 +21,9 @@ pub fn main(options: Args) {
         "folder" => {
             folder::save_folder();
         },
-        "files" => {
+        /*"files" => {
             files::save_files();
-        },
+        },*/
         _ => {
             println!("Option unknow, options available : disk, folder, files")
         },

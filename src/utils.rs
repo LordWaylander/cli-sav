@@ -1,6 +1,102 @@
 use inquire::{Select, error::InquireError, Confirm, ui::{Color, RenderConfig, StyleSheet}};
-use std::fs;
+use std::fs::{self, File};
 use std::process::{Command, Stdio};
+use std::path::Path;
+use std::ffi::OsStr;
+
+pub fn choose_image_disk() -> String {
+    let mut path = String::from("/");
+    loop {
+        let mut vector_dirs: Vec<String> = Vec::new();
+        vector_dirs.push(String::from("Back"));
+
+        match fs::read_dir(path.clone()) {
+            Ok(dirs) => {
+                for dir in dirs {
+                    let dir = dir.unwrap();
+                    let dir_path_string = dir.path().into_os_string().into_string().unwrap();
+                    let dir_splitted = dir_path_string.split("/").collect::<Vec<&str>>();
+
+                    if dir.path().is_dir() {
+                        //TODO : sort ?
+                        //don't show hidden directories
+                        if !dir_splitted.iter().last().unwrap().starts_with("."){
+                            vector_dirs.push(dir_path_string);
+                        }
+                    } else {
+                        let extention = Path::new(dir_path_string.as_str()).extension().and_then(OsStr::to_str);
+
+                        if let Some(extention)= extention {
+                            if extention == "img" {
+                                vector_dirs.push(dir_path_string);
+                            }
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                println!("\x1b[31mError : {}, choose another folder\x1b[0m", e.kind());
+                path = String::from("/");
+                continue;
+            }
+        }
+
+        let directory: Result<String, InquireError> = Select::new(format!("The actual path is {path}, select image disk to restore").as_str(), vector_dirs).prompt();
+
+        match directory {
+            Ok(choice) => {
+                
+                if choice == "Back" {
+                    let clone = path.clone();
+                    let mut splits = clone.split("/").collect::<Vec<&str>>();
+
+                    if splits.len() > 1 {
+                        splits.pop();
+                    }
+
+                    path = String::from("/");
+                    for split in splits.iter() {
+                        if path == "/" {
+                            path = path+format!("{}", split).as_str();
+                        } else {
+                            path = path+"/"+format!("{}", split).as_str();
+                        }
+                    }
+                   continue;
+
+                } else {
+                    match File::open(choice.clone()) {
+                        Ok(file)=> {
+                            
+                            
+                            if file.metadata().unwrap().file_type().is_file() {
+                                let mut render_config = RenderConfig::default();
+                                render_config.prompt = StyleSheet::new().with_fg(Color::DarkYellow);
+
+                                if Confirm::new(format!("Are you sure you want to select {} as image disk ?", choice).as_str()).with_render_config(render_config).with_default(false).prompt().unwrap() {
+                                    return choice;
+                                } else {
+                                    continue;
+                                }
+                            }else {
+                                path = choice;
+                            }
+                        }
+                        Err(e) => {
+                            println!("\x1b[31mError {}\x1b[0m", e.kind());
+                            std::process::exit(1);
+                        }
+                    }
+                    continue;
+                }
+            }
+            Err(e) => {
+                println!("\x1b[31mError : {e}\x1b[0m");
+                std::process::exit(1);
+            }
+        }
+    }
+}
 
 pub fn choose_path_folder(r#type: &str) -> String {
     let mut path = String::from("/");
@@ -101,6 +197,18 @@ pub fn calculate_directory_size(path: &str) -> u64 {
         }
     }
     return folder_size; //return in bytes
+}
+
+pub fn calculate_file_size(path: &str) -> u64 {
+    match File::open(path) {
+        Ok(file)=> {
+            return file.metadata().unwrap().len();
+        }
+        Err(e) => {
+            println!("\x1b[31mCan't calculate size of {} reason : {}\x1b[0m", path, e.kind());
+            std::process::exit(1);
+        }
+    }
 }
 
 pub fn get_available_space_disk(path: &str)-> u64 {
