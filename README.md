@@ -15,6 +15,6 @@ $ cargo build --release
 ```
 help-> show help
 scan -> scan all disk mounted on the system
-save <option> -> save a disk, folder or file
-restore <option> -> restore a disk, folder or file
+save <option> -> save a disk, folder
+restore <option> -> restore a disk, folder
 ```
