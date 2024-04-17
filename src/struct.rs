@@ -23,19 +23,11 @@ impl DiskPart {
                 self.size.parse::<u64>().unwrap()
             }
             "mega-byte" => {
-                if self.size.parse::<u64>().unwrap()/1048576 == 0 {
-                    self.get_size("byte")
-                }else {
-                    self.size.parse::<u64>().unwrap()/1048576
-                }
+                self.size.parse::<u64>().unwrap()/1048576
             }
             "giga-byte" => {
-                if self.size.parse::<u64>().unwrap()/1073741824 == 0 {
-                    self.get_size("mega-byte")
-                }else {
-                    self.size.parse::<u64>().unwrap()/1073741824
-                }
-                
+                self.size.parse::<u64>().unwrap()/1073741824
+
             }
             _ => {
                 todo!("only B and GB available");
